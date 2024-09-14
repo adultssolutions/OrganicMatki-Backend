@@ -24,7 +24,7 @@ import { ProductSize } from './shop/entities/product-size.entity';
     host: '127.0.0.1',
     port: 3306,
     username: 'root',
-    password: '1234',
+    password: 'mrityunjaymanas',
     database: 'organic',
     entities: [Product, User, Cart, CartItem, CustomerOrders, OrderItem,ProductSize],
     synchronize: true  //only to use in development enviornment NEVER IN production
