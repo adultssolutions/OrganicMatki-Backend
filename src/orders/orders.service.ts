@@ -31,6 +31,24 @@ export class OrdersService {
       key_secret: process.env.RAZORPAY_API_KEY_SECRET,
     });
   }
+  async applyPromoCode(promoCode: string, amount: number): Promise<number> {
+    const promoCodes = {
+      Bundelkhand10: 10,
+      Bundelkhand25: 25,
+      Bundelkhand50: 50,
+      Bundelkhand80: 80,
+      Bundelkhand100: 100,
+    };
+
+    const discount = promoCodes[promoCode];
+
+    if (discount) {
+      const discountedAmount = amount - (amount * discount) / 100;
+      return Math.round(discountedAmount); // Round off to nearest integer if needed
+    }
+
+    return amount; // No discount applied if promo code is invalid
+  }
 
   async createOrder(firebaseUid: string | null, items: any[], OrderInfo: any) {
     // Construct the order object with the billing details
@@ -91,46 +109,67 @@ export class OrdersService {
       }),
     );
 
-    const finalAmount = allProducts.reduce(
+    // Calculate total price of all products
+    const initialAmount = allProducts.reduce(
       (acc, item) => acc + item.totalPrice,
       0,
     );
-    const taxPercentage = process.env.TAX_PERCENTAGE;
-    const shipmentCharges = process.env.SHIPMENT_CHARGES;
-    const noOfproducts = process.env.NO_OF_PRODUCTS;
-    const totalAmountBeforeShipping: number = parseInt(
-      (finalAmount + finalAmount * parseFloat(taxPercentage)).toFixed(0),
-    );
+
+    // Apply promo code to get the discounted amount
+    let discountedAmount = initialAmount;
+    console.log("promocode",OrderInfo.promoCode)
+    if (OrderInfo.promoCode) {
+      this.logger.log("promo code :",OrderInfo.promoCode)
+      discountedAmount = await this.applyPromoCode(
+        OrderInfo.promoCode,
+        initialAmount,
+      );
+      console.log("disc",discountedAmount)
+    }
+
+    // Calculate tax and shipping based on discounted amount
+    // const taxPercentage = parseFloat(process.env.TAX_PERCENTAGE) || 0;
+    const shipmentCharges = parseFloat(process.env.SHIPMENT_CHARGES) || 0;
+    const noOfproducts = parseInt(process.env.NO_OF_PRODUCTS, 10) || 0;
+
+    // const amountWithTax =
+    //   discountedAmount + discountedAmount * (taxPercentage / 100);
+    const totalAmountBeforeShipping = Math.round(discountedAmount);
+
+    // Determine if shipping charge applies
     const totalAmountAfterShipping =
-      items.length <= parseInt(noOfproducts)
-        ? totalAmountBeforeShipping + parseFloat(shipmentCharges)
+      items.length <= noOfproducts
+        ? totalAmountBeforeShipping + shipmentCharges
         : totalAmountBeforeShipping;
 
-    // Create the order entity
-    let razorpayOrderId: string | null = null;
-    const cashOnDeliveryCharges = process.env.CASH_ON_DELIVERY_CHARGES;
+    // Add cash-on-delivery charges if applicable
+    let finalAmount = totalAmountAfterShipping;
+    if (OrderInfo.paymentMethod === 'cashOnDelivery') {
+      const cashOnDeliveryCharges =
+        parseFloat(process.env.CASH_ON_DELIVERY_CHARGES) || 0;
+      finalAmount += cashOnDeliveryCharges;
+    }
+
+    // Create the Razorpay order with the final calculated amount
     const razorpayOrder = await this.razorpay.orders.create({
-      amount:
-        OrderInfo.paymentMethod === 'cashOnDelivery'
-          ? parseFloat(cashOnDeliveryCharges) * 100
-          : totalAmountAfterShipping * 100, // Amount in the smallest currency unit (e.g., paise for INR)
+      amount: finalAmount * 100, // Amount in paise
       currency: 'INR',
       receipt: `order_${Date.now()}`,
     });
-    console.log(razorpayOrder);
-    razorpayOrderId = razorpayOrder.id;
 
+    const razorpayOrderId = razorpayOrder.id;
+
+    // Create and save the order in the database
     const order = this.orderRepository.create({
       firebaseUid,
       orderInfo: orderObject,
       items: allProducts,
-      totalAmount: totalAmountAfterShipping,
-      razorpayOrderId, // Store the Razorpay order ID or null
+      totalAmount: finalAmount,
+      razorpayOrderId,
     });
 
     const result = await this.orderRepository.save(order);
 
-    console.log(result);
     return { result, razorpayOrderId };
   }
 
@@ -161,15 +200,16 @@ export class OrdersService {
   }
 
   async emailService(body: any) {
+    console.log('testing the email service');
 
-	console.log("testing the email service");
-	
-	  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-      	  console.log('emailservice called');
-//    const currentDate = new Date().toLocaleString();
-  const currentDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    console.log('emailservice called');
+    //    const currentDate = new Date().toLocaleString();
+    const currentDate = new Date().toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+    });
 
-	  const ComfirmOrder_msg = {
+    const ComfirmOrder_msg = {
       to: `${body.recipient}`, // Change to your recipient
       from: 'contact@organicmatki.in', // Change to your verified sender
       subject: 'Your order is confirmed',
