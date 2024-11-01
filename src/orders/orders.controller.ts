@@ -25,9 +25,14 @@ export class OrdersController {
         key_secret: process.env.RAZORPAY_API_KEY_SECRET})
     }
 
-    @Post('fetchorders')
+    @Get('fetchorders')
     async fetchorders(@Body() body:any){
         return await this.OrderRepository.fetchOrders(body);
     }
 
+    @Post('emailservice')
+    async sendConfirmEmail(@Body() body:any){
+         return await this.OrderRepository.emailService(body);
+   // console.log("email check");
+    }
 }

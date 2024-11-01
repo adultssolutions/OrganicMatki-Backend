@@ -10,10 +10,10 @@ import { UserModule } from './user/user.module';
 import { User } from './user/user.entity';
 import { Cart } from './cart/cart.entity';
 import { CartItem } from './cart/cart-Item.entity';
-import { OrdersModule } from './orders/orders.module';
-import { CustomerOrders } from './orders/entities/orders.entity';
-import {OrderItem} from './orders/entities/orderitem.entity';
 import { ProductSize } from './shop/entities/product-size.entity';
+import { CustomerOrders } from './orders/entities/orders.entity';
+import { OrderItem } from './orders/entities/orderitem.entity';
+import { OrdersModule } from './orders/orders.module';
 
 
 @Module({
@@ -24,7 +24,7 @@ import { ProductSize } from './shop/entities/product-size.entity';
     host: '127.0.0.1',
     port: 3306,
     username: 'root',
-    password: 'Leobarca@10',
+    password: '1234',
     database: 'organic',
     entities: [Product, User, Cart, CartItem, CustomerOrders, OrderItem,ProductSize],
     synchronize: true  //only to use in development enviornment NEVER IN production

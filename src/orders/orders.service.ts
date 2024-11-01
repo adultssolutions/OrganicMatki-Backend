@@ -1,3 +1,4 @@
+require('dotenv').config();
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -6,6 +7,7 @@ import { CustomerOrders } from './entities/orders.entity';
 import { User } from 'src/user/user.entity';
 import { Product } from 'src/shop/entities/product.entity';
 import { ProductSize } from 'src/shop/entities/product-size.entity';
+import * as sgMail from '@sendgrid/mail';
 
 const Razorpay = require('razorpay');
 @Injectable()
@@ -28,25 +30,6 @@ export class OrdersService {
       key_id: process.env.RAZORPAY_API_KEY_ID,
       key_secret: process.env.RAZORPAY_API_KEY_SECRET,
     });
-  }
-
-  async applyPromoCode(promoCode: string, amount: number): Promise<number> {
-    const promoCodes = {
-      Bundelkhand10: 10,
-      Bundelkhand25: 25,
-      Bundelkhand50: 50,
-      Bundelkhand80: 80,
-      Bundelkhand100: 100,
-    };
-
-    const discount = promoCodes[promoCode];
-
-    if (discount) {
-      const discountedAmount = amount - (amount * discount) / 100;
-      return Math.round(discountedAmount); // Round off to nearest integer if needed
-    }
-
-    return amount; // No discount applied if promo code is invalid
   }
 
   async createOrder(firebaseUid: string | null, items: any[], OrderInfo: any) {
@@ -108,63 +91,46 @@ export class OrdersService {
       }),
     );
 
-    // Calculate total price of all products
-    const initialAmount = allProducts.reduce(
+    const finalAmount = allProducts.reduce(
       (acc, item) => acc + item.totalPrice,
       0,
     );
-
-    // Apply promo code to get the discounted amount
-    let discountedAmount = initialAmount;
-    if (OrderInfo.promoCode) {
-      discountedAmount = await this.applyPromoCode(
-        OrderInfo.promoCode,
-        initialAmount,
-      );
-    }
-
-    // Calculate tax and shipping based on discounted amount
-    const taxPercentage = parseFloat(process.env.TAX_PERCENTAGE) || 0;
-    const shipmentCharges = parseFloat(process.env.SHIPMENT_CHARGES) || 0;
-    const noOfproducts = parseInt(process.env.NO_OF_PRODUCTS, 10) || 0;
-
-    const amountWithTax =
-      discountedAmount + discountedAmount * (taxPercentage / 100);
-    const totalAmountBeforeShipping = Math.round(amountWithTax);
-
-    // Determine if shipping charge applies
+    const taxPercentage = process.env.TAX_PERCENTAGE;
+    const shipmentCharges = process.env.SHIPMENT_CHARGES;
+    const noOfproducts = process.env.NO_OF_PRODUCTS;
+    const totalAmountBeforeShipping: number = parseInt(
+      (finalAmount + finalAmount * parseFloat(taxPercentage)).toFixed(0),
+    );
     const totalAmountAfterShipping =
-      items.length <= noOfproducts
-        ? totalAmountBeforeShipping + shipmentCharges
+      items.length <= parseInt(noOfproducts)
+        ? totalAmountBeforeShipping + parseFloat(shipmentCharges)
         : totalAmountBeforeShipping;
 
-    // Add cash-on-delivery charges if applicable
-    let finalAmount = totalAmountAfterShipping;
-    if (OrderInfo.paymentMethod === 'cashOnDelivery') {
-      const cashOnDeliveryCharges =
-        parseFloat(process.env.CASH_ON_DELIVERY_CHARGES) || 0;
-      finalAmount += cashOnDeliveryCharges;
-    }
-
-    // Create the Razorpay order with the final calculated amount
+    // Create the order entity
+    let razorpayOrderId: string | null = null;
+    const cashOnDeliveryCharges = process.env.CASH_ON_DELIVERY_CHARGES;
     const razorpayOrder = await this.razorpay.orders.create({
-      amount: finalAmount * 100, // Amount in paise
+      amount:
+        OrderInfo.paymentMethod === 'cashOnDelivery'
+          ? parseFloat(cashOnDeliveryCharges) * 100
+          : totalAmountAfterShipping * 100, // Amount in the smallest currency unit (e.g., paise for INR)
       currency: 'INR',
       receipt: `order_${Date.now()}`,
     });
+    console.log(razorpayOrder);
+    razorpayOrderId = razorpayOrder.id;
 
-    const razorpayOrderId = razorpayOrder.id;
-
-    // Create and save the order in the database
     const order = this.orderRepository.create({
       firebaseUid,
       orderInfo: orderObject,
       items: allProducts,
-      totalAmount: finalAmount,
-      razorpayOrderId,
+      totalAmount: totalAmountAfterShipping,
+      razorpayOrderId, // Store the Razorpay order ID or null
     });
 
     const result = await this.orderRepository.save(order);
+
+    console.log(result);
     return { result, razorpayOrderId };
   }
 
@@ -185,13 +151,70 @@ export class OrdersService {
   }
 
   async fetchOrders(objectinput: any) {
+    // firebaseUid1.toString().trim();
     const orders = await this.orderRepository.find({
-      where: {
-        firebaseUid: objectinput.firebaseUid,
-        paymentStatus: 'confirmed',
-      },
+      // where: { firebaseUid: objectinput.firebaseUid, paymentStatus: "confirmed" },
+      //  where :{ paymentStatus : "confirmed"},
       relations: ['items'],
     });
     return orders;
+  }
+
+  async emailService(body: any) {
+
+	console.log("testing the email service");
+	
+	  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      	  console.log('emailservice called');
+//    const currentDate = new Date().toLocaleString();
+  const currentDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+	  const ComfirmOrder_msg = {
+      to: `${body.recipient}`, // Change to your recipient
+      from: 'contact@organicmatki.in', // Change to your verified sender
+      subject: 'Your order is confirmed',
+      text: 'and easy to do anywhere, even with Node.js',
+      html: `<div style="font-family: inherit; text-align: inherit">Dear ${body.recipientName},<br>
+        <br>
+        Thank you for shopping with us!<br>
+        <br>
+        We are thrilled to confirm that your ${body.OrderId} has been successfully placed. Below are the details of your order:<br>
+        <br>
+        Order Summary:<br>
+        <br>
+        - Order Date: ${currentDate}<br>
+        - Order Number: ${body.OrderId}<br>
+        - Total Amount: Rs. ${body.OrderAmount}<br>
+        - Payment Method: ${body.PaymentMethod}<br>
+        Order Items:<br>
+        <ul>
+        ${body.OrderItems.map(
+          (item) => `
+          <li>
+            Product Name: ${item.name}<br>
+            Quantity: ${item.quantity}<br>
+            Price: ${item.discountprice}<br>
+          </li>
+        `,
+        ).join('')}
+        </ul>
+        Shipping Address: ${body.OrderAddress}<br>
+        <br>
+        Thank you for choosing us! Our team will process your order promptly.<br>
+        <br>
+        Best regards,</div>
+        <div style="font-family: inherit; text-align: inherit">Organic Matki</div>`,
+    };
+
+    console.log(ComfirmOrder_msg);
+
+    try {
+      await sgMail.send(ComfirmOrder_msg);
+      console.log('Email sent');
+      return { success: true, message: 'Email sent successfully' };
+    } catch (error) {
+      console.error(error);
+      return { success: false, message: 'Failed to send email', error };
+    }
   }
 }
