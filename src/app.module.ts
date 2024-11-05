@@ -24,7 +24,7 @@ import { OrdersModule } from './orders/orders.module';
     host: '127.0.0.1',
     port: 3306,
     username: 'root',
-    password: '1234',
+    password: 'Leobarca@10',
     database: 'organic',
     entities: [Product, User, Cart, CartItem, CustomerOrders, OrderItem,ProductSize],
     synchronize: true  //only to use in development enviornment NEVER IN production
