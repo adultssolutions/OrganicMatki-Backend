@@ -115,7 +115,7 @@ export class OrdersService {
 
     try {
       const response = await axios.post(
-        'https://track.delhivery.com/api/cmu/create.json',
+        'https://staging-express.delhivery.com/api/cmu/create.json',
         {
           format: 'JSON',
           data: shipmentPayload,
@@ -269,9 +269,9 @@ export class OrdersService {
     });
 
     const result = await this.orderRepository.save(order);
-    if (OrderInfo.paymentMethod === "cashOnDelivery") {
-      await this.createShipment(order, OrderInfo.paymentMethod, items)
-    }
+    // if (OrderInfo.paymentMethod === "cashOnDelivery") {
+    //   await this.createShipment(order, OrderInfo.paymentMethod, items)
+    // }
 
     return { result, razorpayOrderId };
   }
