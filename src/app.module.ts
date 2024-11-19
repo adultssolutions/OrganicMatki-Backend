@@ -25,7 +25,7 @@ import { Review } from './shop/entities/product-review.entity';
     host: '127.0.0.1',
     port: 3306,
     username: 'root',
-    password: '1234',
+    password: 'Organic#1234',
     database: 'organicTest',
     entities: [Product, User, Cart, CartItem, CustomerOrders, OrderItem,ProductSize,Review],
     synchronize: false  //only to use in development enviornment NEVER IN production
