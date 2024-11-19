@@ -14,6 +14,7 @@ import { ProductSize } from './shop/entities/product-size.entity';
 import { CustomerOrders } from './orders/entities/orders.entity';
 import { OrderItem } from './orders/entities/orderitem.entity';
 import { OrdersModule } from './orders/orders.module';
+import { Review } from './shop/entities/product-review.entity';
 
 
 @Module({
@@ -26,7 +27,7 @@ import { OrdersModule } from './orders/orders.module';
     username: 'root',
     password: 'Leobarca@10',
     database: 'organic',
-    entities: [Product, User, Cart, CartItem, CustomerOrders, OrderItem,ProductSize],
+    entities: [Product, User, Cart, CartItem, CustomerOrders, OrderItem,ProductSize,Review],
     synchronize: true  //only to use in development enviornment NEVER IN production
   }), CartModule, UserModule, AdminModule, OrdersModule],
   exports: [TypeOrmModule],

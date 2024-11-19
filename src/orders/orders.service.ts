@@ -202,7 +202,7 @@ export class OrdersService {
           quantity: item.quantity,
           // Calculate total price with promo code if applicable
           totalPrice: item.quantity * productSizeInfo.discountPrice,
-          imageUrl: product.imageUrl[0], // Assuming imageUrl is a string array in Product
+          imageUrl: productSizeInfo.imageUrl[0], // Assuming imageUrl is a string array in Product
         });
 
         return orderItem;
@@ -329,7 +329,7 @@ export class OrdersService {
           - Order Date: ${currentDate}<br>
           - Order Number: ${body.OrderId}<br>
           - Total Amount: Rs. ${body.OrderAmount}<br>
-          - Payment Method: ${body.PaymentMethod}<br>
+          - Payment Method: ${body.PaymentMethod === "cashOnDelivery" ? "Cash on delivery":body.paymentMethod}<br>
           Order Items:<br>
           <ul>
           ${body.OrderItems.map(
