@@ -115,7 +115,7 @@ export class OrdersService {
 
     try {
       const response = await axios.post(
-        'https://track.delhivery.com/api/cmu/create.json',
+        'https://staging-express.delhivery.com/api/cmu/create.json',
         {
           format: 'JSON',
           data: shipmentPayload,
@@ -202,7 +202,7 @@ export class OrdersService {
           quantity: item.quantity,
           // Calculate total price with promo code if applicable
           totalPrice: item.quantity * productSizeInfo.discountPrice,
-          imageUrl: product.imageUrl[0], // Assuming imageUrl is a string array in Product
+          imageUrl: productSizeInfo.imageUrl[0], // Assuming imageUrl is a string array in Product
         });
 
         return orderItem;
@@ -269,9 +269,9 @@ export class OrdersService {
     });
 
     const result = await this.orderRepository.save(order);
-    if (OrderInfo.paymentMethod === "cashOnDelivery") {
-      await this.createShipment(order, OrderInfo.paymentMethod, items)
-    }
+    // if (OrderInfo.paymentMethod === "cashOnDelivery") {
+    //   await this.createShipment(order, OrderInfo.paymentMethod, items)
+    // }
 
     return { result, razorpayOrderId };
   }
@@ -329,7 +329,7 @@ export class OrdersService {
           - Order Date: ${currentDate}<br>
           - Order Number: ${body.OrderId}<br>
           - Total Amount: Rs. ${body.OrderAmount}<br>
-          - Payment Method: ${body.PaymentMethod}<br>
+          - Payment Method: ${body.PaymentMethod === "cashOnDelivery" ? "Cash on delivery":body.paymentMethod}<br>
           Order Items:<br>
           <ul>
           ${body.OrderItems.map(

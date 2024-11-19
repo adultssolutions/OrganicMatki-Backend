@@ -14,6 +14,7 @@ import { ProductSize } from './shop/entities/product-size.entity';
 import { CustomerOrders } from './orders/entities/orders.entity';
 import { OrderItem } from './orders/entities/orderitem.entity';
 import { OrdersModule } from './orders/orders.module';
+import { Review } from './shop/entities/product-review.entity';
 
 
 @Module({
@@ -25,8 +26,8 @@ import { OrdersModule } from './orders/orders.module';
     port: 3306,
     username: 'root',
     password: '1234',
-    database: 'organic',
-    entities: [Product, User, Cart, CartItem, CustomerOrders, OrderItem,ProductSize],
+    database: 'organicTest',
+    entities: [Product, User, Cart, CartItem, CustomerOrders, OrderItem,ProductSize,Review],
     synchronize: false  //only to use in development enviornment NEVER IN production
   }), CartModule, UserModule, AdminModule, OrdersModule],
   exports: [TypeOrmModule],
