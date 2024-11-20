@@ -28,7 +28,7 @@ import { Review } from './shop/entities/product-review.entity';
     password: 'Organic#1234',
     database: 'organicBackupTest',
     entities: [Product, User, Cart, CartItem, CustomerOrders, OrderItem,ProductSize,Review],
-    synchronize: false  //only to use in development enviornment NEVER IN production
+    synchronize: true  //only to use in development enviornment NEVER IN production
   }), CartModule, UserModule, AdminModule, OrdersModule],
   exports: [TypeOrmModule],
 })
