@@ -202,7 +202,7 @@ export class OrdersService {
           quantity: item.quantity,
           // Calculate total price with promo code if applicable
           totalPrice: item.quantity * productSizeInfo.discountPrice,
-          imageUrl: product.imageUrl[0], // Assuming imageUrl is a string array in Product
+          imageUrl: productSizeInfo.imageUrl[0], // Assuming imageUrl is a string array in Product
         });
 
         return orderItem;

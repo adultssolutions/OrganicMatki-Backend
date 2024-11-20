@@ -14,6 +14,7 @@ import { ProductSize } from './shop/entities/product-size.entity';
 import { CustomerOrders } from './orders/entities/orders.entity';
 import { OrderItem } from './orders/entities/orderitem.entity';
 import { OrdersModule } from './orders/orders.module';
+import { Review } from './shop/entities/product-review.entity';
 
 
 @Module({
@@ -24,10 +25,10 @@ import { OrdersModule } from './orders/orders.module';
     host: '127.0.0.1',
     port: 3306,
     username: 'root',
-    password: 'Leobarca@10',
-    database: 'organic',
-    entities: [Product, User, Cart, CartItem, CustomerOrders, OrderItem,ProductSize],
-    synchronize: true  //only to use in development enviornment NEVER IN production
+    password: 'Organic#1234',
+    database: 'organicBackupTest',
+    entities: [Product, User, Cart, CartItem, CustomerOrders, OrderItem,ProductSize,Review],
+    synchronize: false  //only to use in development enviornment NEVER IN production
   }), CartModule, UserModule, AdminModule, OrdersModule],
   exports: [TypeOrmModule],
 })
